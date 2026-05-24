@@ -1,6 +1,17 @@
+## AI Assistance Disclosure
 
-# AI Assistance Disclosure: This document was prepared with assistance from an AI tool based on my implementation and project decisions. I  reviewed, edited, and verified the content to ensure it accurately reflects the final solution.
+AI tools were used as a support resource during development, mainly for wording review, UI refinement, implementation checks, test-case suggestions, and code cleanup. All code was reviewed, tested, and finalized by me.
 
+Files edited with AI assistance:
+
+| File | AI Assistance Used For | Final Review |
+|---|---|---|
+| `README.md` | Wording, structure, setup instructions, and project description refinement | Reviewed and finalized by me |
+| `catalog/templates/catalog/product_list.html` | HTML layout refinement, UI wording, and template cleanup | Reviewed, tested, and finalized by me |
+| `seed_data.py` | Sample data structure review, wording cleanup, and consistency checks | Reviewed, tested, and finalized by me |
+| `catalog/tests.py` | Test-case coverage suggestions and assertion cleanup | Reviewed, tested, and finalized by me |
+
+The core Django implementation, business-domain customization, database setup, sample data design, search/filter behavior, and final testing were completed and verified by me.
 
 # Trade Material Catalog
 
