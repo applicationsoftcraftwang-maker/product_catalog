@@ -1,0 +1,491 @@
+{% load catalog_extras %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trade Material Catalog</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0f1117;
+      --surface:    #1a1d27;
+      --surface2:   #22263a;
+      --border:     #2e334d;
+      --accent:     #f97316;
+      --accent-alt: #fb923c;
+      --text:       #e2e8f0;
+      --text-muted: #8892a4;
+      --tag-bg:     #1e2236;
+      --radius:     10px;
+      --shadow:     0 4px 20px rgba(0,0,0,.4);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .page-wrapper {
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      grid-template-rows: auto 1fr auto;
+      grid-template-areas: "header header" "sidebar main" "footer footer";
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      grid-area: header;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      color: var(--accent);
+    }
+
+    .logo-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border-left: 1px solid var(--border);
+      padding-left: 14px;
+    }
+
+    .header-count { margin-left: auto; font-size: 0.82rem; color: var(--text-muted); }
+
+    /* Sidebar */
+    aside {
+      grid-area: sidebar;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 26px 22px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-heading {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.6px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .filter-section { margin-bottom: 24px; }
+
+    .filter-section > label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .search-input, .filter-select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--radius);
+      padding: 8px 11px;
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus, .filter-select:focus { border-color: var(--accent); }
+
+    .tag-checkbox-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+
+    .tag-checkbox-list li label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .tag-checkbox-list input[type="checkbox"] {
+      accent-color: var(--accent);
+      width: 14px; height: 14px;
+      cursor: pointer;
+    }
+
+    .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+
+    .btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.86rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: opacity 0.15s;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-ghost { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+
+    /* Main */
+    main { grid-area: main; padding: 26px 30px; }
+
+    .results-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .results-count { font-size: 0.83rem; color: var(--text-muted); }
+
+    .active-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .filter-badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 3px 10px;
+      font-size: 0.73rem;
+      color: var(--accent);
+    }
+
+    /* Grid */
+    .material-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 18px;
+    }
+
+    .material-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: transform 0.18s, box-shadow 0.18s;
+    }
+
+    .material-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+
+    .material-name { font-weight: 600; font-size: 0.96rem; line-height: 1.3; }
+
+    .material-price { font-size: 0.98rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+
+    .material-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .material-category {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+    }
+
+    .prefab-badge {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 99px;
+      background: #1e3a5f;
+      color: #60a5fa;
+      border: 1px solid #2563eb44;
+    }
+
+    .material-desc {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      flex: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: auto;
+    }
+
+    .tag-list { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    .tag-pill {
+      background: var(--tag-bg);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 2px 8px;
+      font-size: 0.7rem;
+      color: #94a3b8;
+    }
+
+    /* Status badges */
+    .status-badge { font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+    .status-available   { background: #14532d33; color: #4ade80; border: 1px solid #166534; }
+    .status-low_stock   { background: #78350f33; color: #fb923c; border: 1px solid #92400e; }
+    .status-backordered { background: #3b0764aa; color: #c084fc; border: 1px solid #7e22ce55; }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 80px 20px; color: var(--text-muted); }
+    .empty-state .icon { font-size: 2.8rem; margin-bottom: 14px; opacity: 0.4; }
+
+    /* Pagination */
+    .pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 34px; }
+
+    .page-btn {
+      min-width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 0.84rem; color: var(--text);
+      text-decoration: none; transition: background 0.15s;
+    }
+
+    .page-btn:hover, .page-btn.current {
+      background: var(--accent); border-color: var(--accent);
+      color: #fff; text-decoration: none;
+    }
+
+    .page-btn.disabled { opacity: 0.3; pointer-events: none; }
+    .page-btn.ellipsis { border: none; background: transparent; color: var(--text-muted); cursor: default; letter-spacing: 1px; }
+    .pagination-summary { text-align: center; font-size: 0.78rem; color: var(--text-muted); margin-top: 10px; }
+
+    /* Footer */
+    footer {
+      grid-area: footer;
+      border-top: 1px solid var(--border);
+      padding: 14px 32px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    @media (max-width: 768px) {
+      .page-wrapper {
+        grid-template-columns: 1fr;
+        grid-template-areas: "header" "sidebar" "main" "footer";
+      }
+      aside { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- Header -->
+  <header>
+    <span class="logo">⬛ Trade Material Catalog</span>
+    <span class="logo-sub">Materials, Tools &amp; Prefab</span>
+    <span class="header-count">{{ total_results }} item{{ total_results|pluralize }}</span>
+  </header>
+
+  <!-- Sidebar -->
+  <aside>
+    <p class="sidebar-heading">Filter Materials</p>
+
+    <form method="GET" action="">
+
+      <div class="filter-section">
+        <label for="{{ form.query.id_for_label }}">{{ form.query.label }}</label>
+        {{ form.query }}
+      </div>
+
+      <div class="filter-section">
+        <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+        {{ form.category }}
+      </div>
+
+      <div class="filter-section">
+        <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+        {{ form.status }}
+      </div>
+
+      <div class="filter-section">
+        <label>{{ form.tags.label }}</label>
+        <ul class="tag-checkbox-list">
+          {% for checkbox in form.tags %}
+          <li>
+            <label for="{{ checkbox.id_for_label }}">
+              {{ checkbox.tag }}{{ checkbox.choice_label }}
+            </label>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="btn-row">
+        <button type="submit" class="btn btn-primary">Apply</button>
+        <a href="{% url 'catalog:product_list' %}" class="btn btn-ghost">Reset</a>
+      </div>
+
+    </form>
+  </aside>
+
+  <!-- Main -->
+  <main>
+
+    <div class="results-bar">
+      <span class="results-count">
+        {% if total_results %}
+          Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+          of {{ total_results }} result{{ total_results|pluralize }}
+          {% if is_paginated %}· page {{ page_obj.number }}/{{ page_obj.paginator.num_pages }}{% endif %}
+        {% else %}
+          No materials matched
+        {% endif %}
+      </span>
+
+      <div class="active-filters">
+        {% if request.GET.query %}
+          <span class="filter-badge">🔍 "{{ request.GET.query }}"</span>
+        {% endif %}
+        {% if selected_category %}
+          <span class="filter-badge">📂 {{ selected_category.name }}</span>
+        {% endif %}
+        {% if selected_status_label %}
+          <span class="filter-badge">⚡ {{ selected_status_label }}</span>
+        {% endif %}
+        {% for tag in selected_tags %}
+          <span class="filter-badge">🏷 {{ tag.name }}</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if products %}
+    <div class="material-grid">
+      {% for product in products %}
+      <article class="material-card">
+
+        <div class="card-top">
+          <span class="material-name">{{ product.name }}</span>
+          <span class="material-price">${{ product.price }}</span>
+        </div>
+
+        <div class="material-meta">
+          <span class="material-category">{{ product.category.name }}</span>
+          {% if product.is_prefab_item %}
+            <span class="prefab-badge">PREFAB</span>
+          {% endif %}
+        </div>
+
+        <p class="material-desc">{{ product.description }}</p>
+
+        <div class="card-footer">
+          <div class="tag-list">
+            {% for tag in product.tags.all %}
+              <span class="tag-pill">{{ tag.name }}</span>
+            {% empty %}
+              <span style="font-size:0.72rem;color:var(--text-muted)">—</span>
+            {% endfor %}
+          </div>
+
+          <span class="status-badge status-{{ product.status }}">
+            {% if product.status == "available" %}Available
+            {% elif product.status == "low_stock" %}Low Stock
+            {% else %}Backordered
+            {% endif %}
+          </span>
+        </div>
+
+      </article>
+      {% endfor %}
+    </div>
+
+    {% if is_paginated %}
+    <nav class="pagination" aria-label="Pagination">
+
+      {% comment %}First page{% endcomment %}
+      {% if page_obj.has_previous %}
+        <a href="?{% query_replace page=1 %}" class="page-btn" title="First page">«</a>
+        <a href="?{% query_replace page=page_obj.previous_page_number %}" class="page-btn" title="Previous page">‹</a>
+      {% else %}
+        <span class="page-btn disabled" aria-disabled="true">«</span>
+        <span class="page-btn disabled" aria-disabled="true">‹</span>
+      {% endif %}
+
+      {% comment %}Sliding window: always show first, last, current, and ±2 neighbours{% endcomment %}
+      {% for num in page_obj.paginator.page_range %}
+        {% if num == 1 or num == page_obj.paginator.num_pages %}
+          {% if num == page_obj.number %}
+            <span class="page-btn current" aria-current="page">{{ num }}</span>
+          {% else %}
+            <a href="?{% query_replace page=num %}" class="page-btn">{{ num }}</a>
+          {% endif %}
+        {% elif num == page_obj.number|add:"-3" or num == page_obj.number|add:"3" %}
+          <span class="page-btn ellipsis">…</span>
+        {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+          {% if num == page_obj.number %}
+            <span class="page-btn current" aria-current="page">{{ num }}</span>
+          {% else %}
+            <a href="?{% query_replace page=num %}" class="page-btn">{{ num }}</a>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+
+      {% comment %}Last page{% endcomment %}
+      {% if page_obj.has_next %}
+        <a href="?{% query_replace page=page_obj.next_page_number %}" class="page-btn" title="Next page">›</a>
+        <a href="?{% query_replace page=page_obj.paginator.num_pages %}" class="page-btn" title="Last page">»</a>
+      {% else %}
+        <span class="page-btn disabled" aria-disabled="true">›</span>
+        <span class="page-btn disabled" aria-disabled="true">»</span>
+      {% endif %}
+
+    </nav>
+
+    <p class="pagination-summary">
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      &nbsp;·&nbsp;
+      {{ total_results }} result{{ total_results|pluralize }}
+    </p>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">🔧</div>
+      <p>No matching materials found.</p>
+      <p style="margin-top:8px;font-size:0.85rem">
+        Try changing the description, category, availability status, or jobsite tags.
+      </p>
+      <p style="margin-top:12px"><a href="{% url 'catalog:product_list' %}">Clear all filters</a></p>
+    </div>
+    {% endif %}
+
+  </main>
+
+  <footer>Trade Material Catalog — Django take-home project</footer>
+
+</div>
+</body>
+</html>

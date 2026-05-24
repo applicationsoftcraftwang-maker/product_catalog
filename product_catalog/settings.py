@@ -116,3 +116,81 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+# Writes to console (always) and to logs/catalog.log (rotating, 5 × 1 MB).
+# Use the 'catalog' logger in application code: logging.getLogger('catalog')
+# ---------------------------------------------------------------------------
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'formatters': {
+        # Human-readable format for the console during development
+        'console': {
+            'format': '[{asctime}] {levelname} {name}: {message}',
+            'style': '{',
+            'datefmt': '%H:%M:%S',
+        },
+        # Richer format for the log file
+        'file': {
+            'format': '[{asctime}] {levelname} {name} ({module}.{funcName}:{lineno}): {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'console',
+            'level': 'DEBUG',
+        },
+        'file': {
+            # RotatingFileHandler keeps logs from growing unboundedly.
+            # 5 backup files × 1 MB each = at most ~5 MB of logs retained.
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'catalog.log',
+            'maxBytes': 1_000_000,   # 1 MB per file
+            'backupCount': 5,
+            'formatter': 'file',
+            'level': 'DEBUG',
+            'encoding': 'utf-8',
+        },
+    },
+
+    'loggers': {
+        # Application logger — catches everything from the catalog app
+        'catalog': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        # Django's request logger — logs 4xx/5xx at WARNING, 2xx/3xx at DEBUG
+        'django.request': {
+            'handlers': ['file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        # Log slow/unexpected DB queries in development
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'WARNING',   # flip to DEBUG to see all SQL
+            'propagate': False,
+        },
+    },
+
+    # Root logger catches anything not matched above (third-party libs, etc.)
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+}
+
